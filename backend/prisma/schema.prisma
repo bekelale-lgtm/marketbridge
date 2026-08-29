@@ -1,0 +1,409 @@
+// MarketBridge — Prisma schema
+// Covers: Users/roles, Agricultural + Digital marketplaces, Inspections,
+// Orders, Party-controlled Transport, Payments, Advertising, Disputes,
+// Ratings, Messaging.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  SELLER
+  BUYER
+  INSPECTOR
+  TRUCK_OWNER
+  ADVERTISER
+  ADMIN
+}
+
+enum ListingCategory {
+  AGRICULTURAL
+  DIGITAL
+}
+
+enum ListingStatus {
+  DRAFT
+  ACTIVE
+  UNDER_NEGOTIATION
+  SOLD
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum InspectionMode {
+  SELLER_REQUESTED
+  BUYER_REQUESTED
+  JOINT
+}
+
+enum InspectionStatus {
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  TRANSPORT_ARRANGED
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  DISPUTED
+  CANCELLED
+}
+
+enum ArrangingParty {
+  SELLER
+  BUYER
+  JOINT
+}
+
+enum TransportMethod {
+  OWN_TRUCK
+  HIRE_TRANSPORTER
+}
+
+enum TransportStatus {
+  REQUESTED
+  ACCEPTED
+  QUOTED
+  PICKUP
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum TruckAvailability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum PaymentType {
+  MARKETPLACE
+  TRANSPORT
+  INSPECTOR
+  ADVERTISING
+}
+
+enum PaymentMethod {
+  TELEBIRR
+  CBE
+  QR
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum AdType {
+  FEATURED_LISTING
+  TOP_OF_CATEGORY
+  SPONSORED_SEARCH
+  BANNER
+  TELEGRAM_PROMOTION
+}
+
+enum AdStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REJECTED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ---------- Core ----------
+
+model User {
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  passwordHash      String
+  roles             Role[]   // a person can be e.g. [SELLER, BUYER]
+  location          String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  rating            Float?   @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  listings              Listing[]            @relation("SellerListings")
+  offersMade            Offer[]              @relation("BuyerOffers")
+  inspectionsRequested  InspectionRequest[]   @relation("Requester")
+  inspectionsPerformed  InspectionRequest[]   @relation("Inspector")
+  truck                 Truck[]
+  ordersAsBuyer         Order[]              @relation("BuyerOrders")
+  ordersAsSeller        Order[]              @relation("SellerOrders")
+  transportJobsHauled   TransportJob[]       @relation("TruckOwnerJobs")
+  digitalProducts       DigitalProduct[]
+  ads                   Advertisement[]
+  ratingsGiven          Rating[]             @relation("RatingsGiven")
+  ratingsReceived       Rating[]             @relation("RatingsReceived")
+  messagesSent          Message[]            @relation("MessagesSent")
+  messagesReceived      Message[]            @relation("MessagesReceived")
+  disputesRaised        Dispute[]            @relation("DisputeRaisedBy")
+  disputesAgainst       Dispute[]            @relation("DisputeAgainst")
+}
+
+// ---------- Agricultural Marketplace ----------
+
+model Listing {
+  id              String          @id @default(uuid())
+  seller          User            @relation("SellerListings", fields: [sellerId], references: [id])
+  sellerId        String
+  category        ListingCategory @default(AGRICULTURAL)
+  cropType        String
+  quantity        Float
+  unit            String          // e.g. quintal, kg
+  askingPrice     Float
+  minAcceptablePrice Float?       // private, farmer only
+  location        String
+  harvestedDate   DateTime?
+  readinessDate   DateTime?
+  photos          String[]
+  videos          String[]
+  status          ListingStatus   @default(DRAFT)
+  createdByInspectorId String?    // if inspector helped create listing on farmer's behalf
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  offers              Offer[]
+  inspectionRequests  InspectionRequest[]
+  orders              Order[]
+  ads                 Advertisement[]
+}
+
+model Offer {
+  id            String      @id @default(uuid())
+  listing       Listing     @relation(fields: [listingId], references: [id])
+  listingId     String
+  buyer         User        @relation("BuyerOffers", fields: [buyerId], references: [id])
+  buyerId       String
+  amount        Float
+  status        OfferStatus @default(PENDING)
+  counterAmount Float?
+  message       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// ---------- Inspection ----------
+
+model InspectionRequest {
+  id            String            @id @default(uuid())
+  listing       Listing           @relation(fields: [listingId], references: [id])
+  listingId     String
+  requestedBy   User              @relation("Requester", fields: [requestedById], references: [id])
+  requestedById String
+  mode          InspectionMode
+  inspector     User?             @relation("Inspector", fields: [inspectorId], references: [id])
+  inspectorId   String?
+  status        InspectionStatus  @default(REQUESTED)
+  fee           Float?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  report        InspectionReport?
+}
+
+model InspectionReport {
+  id            String   @id @default(uuid())
+  request       InspectionRequest @relation(fields: [requestId], references: [id])
+  requestId     String   @unique
+  quantity      Float
+  grade         String?
+  moisture      Float?
+  visibleDefects String?
+  damageNotes   String?
+  packagingNotes String?
+  photos        String[]
+  videos        String[]
+  gpsLocation   String?
+  inspectedAt   DateTime @default(now())
+}
+
+// ---------- Orders & Transport ----------
+
+model Order {
+  id             String         @id @default(uuid())
+  listing        Listing        @relation(fields: [listingId], references: [id])
+  listingId      String
+  buyer          User           @relation("BuyerOrders", fields: [buyerId], references: [id])
+  buyerId        String
+  seller         User           @relation("SellerOrders", fields: [sellerId], references: [id])
+  sellerId       String
+  finalPrice     Float
+  status         OrderStatus    @default(PENDING_PAYMENT)
+  arrangingParty ArrangingParty?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  transportJob   TransportJob?
+  payments       Payment[]
+  disputes       Dispute[]
+  ratings        Rating[]
+  messages       Message[]
+}
+
+model Truck {
+  id              String            @id @default(uuid())
+  owner           User              @relation(fields: [ownerId], references: [id])
+  ownerId         String
+  registration    String
+  truckType       String
+  capacity        Float
+  operatingArea   String
+  availability    TruckAvailability @default(AVAILABLE)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  rating          Float?            @default(0)
+  createdAt       DateTime          @default(now())
+
+  transportJobs   TransportJob[]
+}
+
+model TransportJob {
+  id              String           @id @default(uuid())
+  order           Order            @relation(fields: [orderId], references: [id])
+  orderId         String           @unique
+  arrangingParty  ArrangingParty
+  method          TransportMethod
+  truckOwner      User?            @relation("TruckOwnerJobs", fields: [truckOwnerId], references: [id])
+  truckOwnerId    String?
+  truck           Truck?           @relation(fields: [truckId], references: [id])
+  truckId         String?
+  pickupLocation  String
+  destination     String
+  load            String
+  requiredCapacity Float?
+  specialRequirements String?
+  status          TransportStatus  @default(REQUESTED)
+  pickupConfirmedAt   DateTime?
+  deliveredConfirmedAt DateTime?
+  incidentNotes   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+// ---------- Digital Marketplace ----------
+
+model DigitalProduct {
+  id          String   @id @default(uuid())
+  seller      User     @relation(fields: [sellerId], references: [id])
+  sellerId    String
+  title       String
+  productType String   // ebook, template, graphic, photo, software_license, course, document
+  price       Float
+  fileUrl     String
+  description String?
+  status      ListingStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+}
+
+// ---------- Payments ----------
+
+model Payment {
+  id        String        @id @default(uuid())
+  order     Order?        @relation(fields: [orderId], references: [id])
+  orderId   String?
+  type      PaymentType
+  amount    Float
+  method    PaymentMethod
+  status    PaymentStatus @default(PENDING)
+  reference String?
+  createdAt DateTime      @default(now())
+}
+
+// ---------- Advertising ----------
+
+model Advertisement {
+  id           String   @id @default(uuid())
+  advertiser   User     @relation(fields: [advertiserId], references: [id])
+  advertiserId String
+  listing      Listing? @relation(fields: [listingId], references: [id])
+  listingId    String?
+  type         AdType
+  status       AdStatus @default(PENDING)
+  startDate    DateTime
+  endDate      DateTime
+  amountPaid   Float?
+  createdAt    DateTime @default(now())
+}
+
+// ---------- Disputes, Ratings, Messages ----------
+
+model Dispute {
+  id          String        @id @default(uuid())
+  order       Order         @relation(fields: [orderId], references: [id])
+  orderId     String
+  raisedBy    User          @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
+  raisedById  String
+  against     User          @relation("DisputeAgainst", fields: [againstId], references: [id])
+  againstId   String
+  disputeType String
+  description String
+  evidence    String[]
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String
+  fromUser   User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  fromUserId String
+  toUser     User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  toUserId   String
+  role       Role     // role being rated (SELLER, BUYER, INSPECTOR, TRUCK_OWNER)
+  score      Int      // 1-5
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  order      Order?   @relation(fields: [orderId], references: [id])
+  orderId    String?
+  sender     User     @relation("MessagesSent", fields: [senderId], references: [id])
+  senderId   String
+  receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+}
