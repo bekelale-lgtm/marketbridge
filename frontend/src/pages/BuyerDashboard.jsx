@@ -1,36 +1,3 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../api/client';
-import { useAuth } from '../context/AuthContext.jsx';
-
-export default function BuyerDashboard() {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState([]);
-
-  useEffect(() => {
-    api.get('/orders').then((res) => setOrders(res.data.orders.filter((o) => o.buyerId === user.id)));
-  }, [user.id]);
-
-  async function confirmReceipt(orderId) {
-    await api.patch(`/orders/${orderId}/confirm-receipt`);
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: 'COMPLETED' } : o)));
-  }
-
-  return (
-    <div className="container">
-      <h1>Buyer dashboard</h1>
-      <Link to="/listings"><button>Browse listings</button></Link>
-
-      <h3 style={{ marginTop: 24 }}>My orders</h3>
-      {orders.map((o) => (
-        <div className="card" key={o.id}>
-          <p>Order {o.id.slice(0, 8)} — <span className="badge">{o.status}</span></p>
-          <p>{o.finalPrice.toLocaleString()} ETB</p>
-          {!o.transportJob && <Link to={`/orders/${o.id}/transport`}><button>Arrange transport</button></Link>}
-          {o.status === 'DELIVERED' && <button onClick={() => confirmReceipt(o.id)}>Confirm receipt</button>}
-        </div>
-      ))}
-      {orders.length === 0 && <p>No orders yet.</p>}
-    </div>
-  );
-}
+import React,{useEffect,useState} from 'react';import{Link}from'react-router-dom';import api from'../api/client';import{useAuth}from'../context/AuthContext.jsx';
+export default function BuyerDashboard(){const{user}=useAuth();const[orders,setOrders]=useState([]);const[loading,setLoading]=useState(true);const load=()=>api.get('/orders').then(r=>setOrders((r.data.orders||[]).filter(o=>o.buyerId===user.id))).finally(()=>setLoading(false));useEffect(()=>{load()},[user.id]);async function receipt(id){await api.patch(`/orders/${id}/confirm-receipt`);load()}return <main className="section"><div className="container-wide"><DashboardHeader role="Buyer" title="Your buyer workspace" action={<Link className="btn btn-primary" to="/listings">Find produce →</Link>}/><div className="dashboard-grid"><Stat n={orders.length} label="Orders"/><Stat n={orders.filter(o=>o.status==='DELIVERED').length} label="Awaiting receipt confirmation"/><Stat n={orders.filter(o=>o.status==='PENDING_PAYMENT').length} label="Pending payment"/></div><div className="dashboard-layout"><section><div className="section-title"><h2>Orders</h2><span className="muted">Purchase → transport → delivery</span></div>{loading?<div className="loading">Loading orders…</div>:orders.length?orders.map(o=><div className="order-card card" key={o.id}><div><span className="eyebrow">ORDER {o.id.slice(0,8)}</span><h3>{o.listing?.cropType||'Agricultural order'}</h3><p>{Number(o.finalPrice).toLocaleString()} ETB · <span className="badge">{o.status}</span></p></div><div className="row-actions">{!o.transportJob&&o.status!=='CANCELLED'&&<Link className="btn btn-light" to={`/orders/${o.id}/transport`}>Hire Transport / Own Truck</Link>}<Link className="btn btn-light" to={`/orders/${o.id}`}>View order</Link>{o.status==='DELIVERED'&&<button className="btn btn-primary" onClick={()=>receipt(o.id)}>Confirm receipt</button>}</div></div>):<div className="empty card"><h3>No orders yet</h3><p>Browse farm listings and make an offer.</p><Link className="text-link" to="/listings">Explore produce →</Link></div>}</section><aside><div className="card"><h3>Buyer tools</h3><Tool t="Search & categories"/><Tool t="Saved listings"/><Tool t="Offers & negotiations"/><Tool t="Inspection requests & reports"/><Tool t="Transport & delivery tracking"/><Tool t="Messages & reviews"/></div><div className="card"><h3>Transport rule</h3><p className="small">After purchase, you can use your own truck or hire a registered truck owner through MarketBridge. Seller-arranged transport can also be recorded.</p></div></aside></div></div></main>}
+function DashboardHeader({role,title,action}){return <div className="page-header"><div><span className="eyebrow">{role.toUpperCase()} DASHBOARD</span><h1>{title}</h1><p>Manage your marketplace activity and keep the transaction record in one place.</p></div>{action}</div>}function Stat({n,label}){return <div className="stat-card"><strong>{n}</strong><span>{label}</span></div>}function Tool({t}){return <div className="tool-row">✓ {t}</div>}
