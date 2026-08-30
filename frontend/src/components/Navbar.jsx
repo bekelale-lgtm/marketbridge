@@ -1,40 +1,47 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+
+const roleLinks = [
+  ['SELLER', '/dashboard/seller', 'Seller'],
+  ['BUYER', '/dashboard/buyer', 'Buyer'],
+  ['INSPECTOR', '/dashboard/inspector', 'Inspector'],
+  ['TRUCK_OWNER', '/dashboard/truck-owner', 'Transport'],
+  ['ADMIN', '/dashboard/admin', 'Admin'],
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
-    <div className="navbar">
-      <Link to="/" className="brand">MarketBridge</Link>
-      <div className="role-nav" style={{ display: 'flex', alignItems: 'center' }}>
-        <Link to="/listings">Browse</Link>
-        <Link to="/digital">Digital</Link>
-        {user?.roles.includes('SELLER') && <Link to="/dashboard/seller">Seller</Link>}
-        {user?.roles.includes('BUYER') && <Link to="/dashboard/buyer">Buyer</Link>}
-        {user?.roles.includes('INSPECTOR') && <Link to="/dashboard/inspector">Inspector</Link>}
-        {user?.roles.includes('TRUCK_OWNER') && <Link to="/dashboard/truck-owner">Transport</Link>}
-        {user?.roles.includes('ADMIN') && <Link to="/dashboard/admin">Admin</Link>}
-        {user ? (
-          <>
-            <span style={{ marginLeft: 14, fontSize: 13 }}>{user.name}</span>
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); logout(); navigate('/'); }}
-              style={{ marginLeft: 14 }}
-            >
-              Logout
-            </a>
-          </>
-        ) : (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
-          </>
-        )}
-      </div>
-    </div>
+    <header className="site-header">
+      <nav className="navbar container-wide">
+        <Link to="/" className="brand">
+          <span className="brand-mark">MB</span>
+          <span>Market<span>Bridge</span></span>
+        </Link>
+        <div className="nav-links">
+          <Link className={location.pathname === '/listings' ? 'active' : ''} to="/listings">Agriculture</Link>
+          <Link className={location.pathname === '/digital' ? 'active' : ''} to="/digital">Digital</Link>
+          {user && roleLinks.filter(([r]) => user.roles?.includes(r)).map(([r, href, label]) => (
+            <Link key={r} className={location.pathname === href ? 'active' : ''} to={href}>{label}</Link>
+          ))}
+          {user ? (
+            <button className="nav-user" onClick={() => navigate(roleLinks.find(([r]) => user.roles?.includes(r))?.[1] || '/')}>
+              <span className="avatar">{user.name?.charAt(0)?.toUpperCase() || 'U'}</span>
+              {user.name}
+            </button>
+          ) : (
+            <>
+              <Link to="/login">Log in</Link>
+              <Link className="nav-cta" to="/register">Join MarketBridge</Link>
+            </>
+          )}
+          {user && <button className="nav-logout" onClick={() => { logout(); navigate('/'); }}>Log out</button>}
+        </div>
+      </nav>
+    </header>
   );
 }
