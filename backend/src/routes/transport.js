@@ -82,6 +82,27 @@ router.get('/match', authenticate, async (req, res) => {
   res.json({ trucks });
 });
 
+// Jobs already assigned to me (accepted, quoted, or in progress) — used by
+// the Truck Owner Dashboard's "My Jobs" tab
+router.get('/mine', authenticate, requireRole('TRUCK_OWNER'), async (req, res) => {
+  const jobs = await prisma.transportJob.findMany({
+    where: { truckOwnerId: req.user.id },
+    include: { order: { include: { listing: true, buyer: { select: { id: true, name: true } }, seller: { select: { id: true, name: true } } } } },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ jobs });
+});
+
+// Open hire requests nobody has claimed yet — used by the "Available Jobs" tab
+router.get('/open', authenticate, requireRole('TRUCK_OWNER'), async (req, res) => {
+  const jobs = await prisma.transportJob.findMany({
+    where: { method: 'HIRE_TRANSPORTER', truckOwnerId: null, status: 'REQUESTED' },
+    include: { order: { include: { listing: true, buyer: { select: { id: true, name: true } }, seller: { select: { id: true, name: true } } } } },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ jobs });
+});
+
 // Truck owner accepts/quotes a hire request
 router.patch('/:id/respond', authenticate, requireRole('TRUCK_OWNER'), async (req, res) => {
   const { action } = req.body; // 'ACCEPT' | 'QUOTE'
@@ -116,6 +137,15 @@ router.patch('/:id/status', authenticate, async (req, res) => {
   }
 
   res.json({ transportJob: updated });
+});
+
+// Trucks I own — used by the "My Trucks" tab
+router.get('/trucks/mine', authenticate, requireRole('TRUCK_OWNER'), async (req, res) => {
+  const trucks = await prisma.truck.findMany({
+    where: { ownerId: req.user.id },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ trucks });
 });
 
 // Truck owner registers/updates a truck
