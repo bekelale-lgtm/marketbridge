@@ -7,7 +7,8 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-const VALID_ROLES = ['SELLER', 'BUYER', 'INSPECTOR', 'TRUCK_OWNER', 'ADVERTISER'];
+const OPTIONAL_ROLES = ['INSPECTOR', 'TRUCK_OWNER', 'ADVERTISER'];
+const DEFAULT_ROLES = ['BUYER', 'SELLER'];
 
 function signToken(user) {
   return jwt.sign({ sub: user.id }, process.env.JWT_SECRET, {
@@ -26,15 +27,15 @@ router.post(
     body('name').notEmpty(),
     body('email').isEmail(),
     body('password').isLength({ min: 6 }),
-    body('roles').isArray({ min: 1 }),
+    body('roles').optional().isArray(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { name, email, phone, password, roles, location } = req.body;
-
-    const invalidRole = roles.find((r) => !VALID_ROLES.includes(r));
+    const { name, email, phone, password, location } = req.body;
+    let roles = Array.isArray(req.body.roles) && req.body.roles.length ? [...new Set(req.body.roles)] : [...DEFAULT_ROLES];
+    const invalidRole = roles.find((r) => ![...DEFAULT_ROLES, ...OPTIONAL_ROLES].includes(r));
     if (invalidRole) return res.status(400).json({ error: `Invalid role: ${invalidRole}` });
 
     const existing = await prisma.user.findUnique({ where: { email } });

@@ -8,10 +8,11 @@ const router = express.Router();
 
 // Public browse/search
 router.get('/', async (req, res) => {
-  const { cropType, location, status, minQuantity, category } = req.query;
+  const { cropType, title, location, status, minQuantity, category } = req.query;
   const listings = await prisma.listing.findMany({
     where: {
       ...(cropType && { cropType: { contains: cropType, mode: 'insensitive' } }),
+      ...(title && { title: { contains: title, mode: 'insensitive' } }),
       ...(location && { location: { contains: location, mode: 'insensitive' } }),
       ...(category && { category }),
       status: status || 'ACTIVE',
@@ -45,7 +46,9 @@ router.post(
   requireRole('SELLER', 'INSPECTOR'),
   [
     body('sellerId').notEmpty(),
-    body('cropType').notEmpty(),
+    body('category').optional().isIn(['AGRICULTURAL','PRODUCT']),
+    body('title').optional().isString().trim(),
+    body('cropType').optional().isString().trim(),
     body('quantity').isFloat({ gt: 0 }),
     body('unit').notEmpty(),
     body('askingPrice').isFloat({ gt: 0 }),
@@ -56,7 +59,7 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const {
-      sellerId, cropType, quantity, unit, askingPrice, minAcceptablePrice,
+      sellerId, category = 'AGRICULTURAL', title, cropType, quantity, unit, askingPrice, minAcceptablePrice,
       location, harvestedDate, readinessDate, photos, videos,
     } = req.body;
 
@@ -68,11 +71,18 @@ router.post(
       }
     }
 
+    if (category === 'AGRICULTURAL' && !cropType) return res.status(400).json({ error: 'cropType is required for agricultural listings' });
+    if (category === 'PRODUCT' && !title && !cropType) return res.status(400).json({ error: 'title is required for product listings' });
+    const seller = await prisma.user.findUnique({ where: { id: sellerId } });
+    if (!seller) return res.status(404).json({ error: 'Seller account not found' });
+    if (!seller.roles.includes('SELLER')) return res.status(400).json({ error: 'The selected account is not enabled for selling' });
+
     const listing = await prisma.listing.create({
       data: {
         sellerId,
-        category: 'AGRICULTURAL',
-        cropType,
+        category,
+        title: title || cropType,
+        cropType: cropType || title,
         quantity,
         unit,
         askingPrice,
