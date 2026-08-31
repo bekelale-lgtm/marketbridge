@@ -31,6 +31,16 @@ router.post(
   }
 );
 
+// Buyer's own offers across all listings — used by the Buyer Dashboard
+router.get('/mine', authenticate, async (req, res) => {
+  const offers = await prisma.offer.findMany({
+    where: { buyerId: req.user.id },
+    include: { listing: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  res.json({ offers });
+});
+
 // Seller (farmer only — price authority) counters, accepts, or rejects
 router.patch('/:id', authenticate, requireRole('SELLER'), async (req, res) => {
   const { action, counterAmount } = req.body; // action: 'ACCEPT' | 'REJECT' | 'COUNTER'
