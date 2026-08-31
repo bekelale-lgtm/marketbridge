@@ -1,63 +1,70 @@
-// frontend/src/pages/Home.jsx
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const agriculturalCategories = [
-  {
-    title: 'Farm Produce',
-    description:
-      'Farmers and agricultural sellers can list available produce directly for buyers.',
-    items: ['Potatoes', 'Wheat', 'Barley', 'Onion', 'Vegetables', 'Fruits'],
-    link: '/listings',
-  },
-  {
-    title: 'Farmers & Sellers',
-    description:
-      'Independent farmers, agricultural producers and sellers can reach buyers beyond their local markets.',
-    items: ['Farmers', 'Producer groups', 'Agricultural sellers', 'Bulk suppliers'],
-    link: '/listings',
-  },
-  {
-    title: 'Investors & Agricultural Sellers',
-    description:
-      'Connect agricultural investors and commercial sellers with buyers and market opportunities.',
-    items: ['Investors', 'Commercial farms', 'Agribusiness sellers', 'Bulk lots'],
-    link: '/listings',
-  },
+const pillars = [
+  [
+    '01',
+    'Agricultural marketplace',
+    'Connect farmers, agricultural producers, investors and buyers for farm-produced goods, including bulk and time-sensitive harvests.',
+  ],
+  [
+    '02',
+    'Physical products',
+    'Buy and sell general physical products through independent sellers and buyers without MarketBridge owning the merchandise.',
+  ],
+  [
+    '03',
+    'Digital marketplace',
+    'Discover and sell eBooks, courses, software, documents, templates, graphics, photos and other digital products.',
+  ],
 ];
 
-const marketplaceCategories = [
+const marketplaceCards = [
   {
     number: '01',
-    title: 'Agricultural Products',
+    title: 'Agricultural',
     description:
-      'The core MarketBridge marketplace for farm produce, agricultural sellers and buyers.',
-    link: '/listings',
+      'Farm-produced goods such as potatoes, wheat, barley, vegetables, fruits, livestock-related products and other agricultural produce.',
+    features: [
+      'Farmers & producers',
+      'Bulk agricultural lots',
+      'Offers & negotiation',
+      'Inspection & evidence',
+      'Transport arrangement',
+    ],
+    link: '/agricultural',
+    button: 'Enter Agricultural Marketplace →',
   },
   {
     number: '02',
-    title: 'Other Goods',
+    title: 'Product',
     description:
-      'A wider marketplace for useful physical goods and services connected to everyday and agricultural needs.',
-    link: '/marketplace',
+      'A broader marketplace for physical products sold by independent sellers to buyers through the MarketBridge platform.',
+    features: [
+      'Physical products',
+      'Independent sellers',
+      'Buyer discovery',
+      'Orders & records',
+      'Delivery options',
+    ],
+    link: '/products',
+    button: 'Browse Physical Products →',
   },
   {
     number: '03',
-    title: 'Digital Products',
+    title: 'Digital',
     description:
-      'Independent sellers can offer eBooks, courses, documents, graphics and other digital products.',
+      'A marketplace for independently supplied digital products and downloadable resources.',
+    features: [
+      'eBooks',
+      'Courses',
+      'Software',
+      'Documents & templates',
+      'Graphics & photos',
+    ],
     link: '/digital',
+    button: 'Browse Digital Products →',
   },
-];
-
-const workflow = [
-  ['01', 'Seller lists', 'A farmer or seller publishes the product, quantity, location and availability.'],
-  ['02', 'Buyer discovers', 'Buyers search agricultural products and other marketplace goods.'],
-  ['03', 'Inspect & verify', 'Independent inspection and evidence can be requested before purchase.'],
-  ['04', 'Offer & negotiate', 'Buyers submit offers while the seller remains the price authority.'],
-  ['05', 'Arrange transport', 'The buyer or seller chooses an own truck or hires a registered transporter.'],
-  ['06', 'Pickup → delivery', 'Transport status is tracked through pickup, transit and delivery.'],
 ];
 
 export default function Home() {
@@ -73,102 +80,84 @@ export default function Home() {
 
           <div>
             <div className="eyebrow">
-              MARKETBRIDGE — ETHIOPIAN MARKETPLACE PLATFORM
+              MARKETBRIDGE PLATFORM
             </div>
 
             <h1>
-              Connecting the
-              <em> farm</em> to the
-              <em> market.</em>
+              One platform for{' '}
+              <em>agriculture, products and digital commerce.</em>
             </h1>
 
             <p className="hero-copy">
-              MarketBridge is a multi-vendor marketplace designed around
-              agricultural producers, farmers, buyers, inspectors,
-              transporters, investors and independent sellers.
-            </p>
-
-            <p className="hero-copy">
-              Our primary focus is helping farmers and agricultural sellers
-              find suitable buyers, negotiate confidently, verify products
-              and arrange delivery without MarketBridge taking ownership
-              of the products.
+              MarketBridge connects producers, farmers, sellers,
+              buyers, investors and independent service providers
+              through one marketplace platform.
             </p>
 
             <div className="hero-actions">
 
               <Link
                 className="btn btn-primary btn-lg"
-                to="/listings"
+                to="/agricultural"
               >
-                Explore agricultural market →
+                Agricultural Marketplace →
               </Link>
 
               <Link
                 className="btn btn-light btn-lg"
-                to="/digital"
+                to="/products"
               >
-                Browse digital products
+                Browse Products
               </Link>
 
             </div>
 
             <div className="trust-row">
-              <span>✓ Farmer price authority</span>
-              <span>✓ Independent inspection</span>
-              <span>✓ Buyer/seller-controlled transport</span>
-              <span>✓ Seller-owned products</span>
+              <span>✓ Independent sellers</span>
+              <span>✓ Buyer & seller accounts</span>
+              <span>✓ Marketplace records</span>
             </div>
           </div>
 
 
-          {/* PLATFORM STRUCTURE CARD */}
+          {/* PLATFORM MAP */}
 
           <div className="hero-card">
 
             <div className="hero-card-top">
               <span className="live-dot"></span>
-              MARKETBRIDGE PLATFORM
+              MARKETBRIDGE STRUCTURE
             </div>
 
             <div className="flow">
 
               <div className="flow-step">
                 <span>01</span>
-                Agricultural producers
+                HOME
               </div>
 
               <div className="flow-step">
                 <span>02</span>
-                Farmers / sellers
+                AGRICULTURAL
               </div>
 
               <div className="flow-step">
                 <span>03</span>
-                Buyers & investors
+                PRODUCT
               </div>
 
               <div className="flow-step">
                 <span>04</span>
-                Inspect & negotiate
-              </div>
-
-              <div className="flow-step">
-                <span>05</span>
-                Transport
-              </div>
-
-              <div className="flow-step">
-                <span>06</span>
-                Delivery & completion
+                DIGITAL
               </div>
 
             </div>
 
             <p className="small muted">
-              MarketBridge facilitates marketplace connections,
-              communication, inspection workflows, offers, records
-              and approved marketplace services.
+              MarketBridge provides the marketplace infrastructure
+              connecting independent producers and sellers with
+              buyers while supporting verification, communication,
+              orders and approved marketplace services.
             </p>
 
           </div>
@@ -178,7 +167,7 @@ export default function Home() {
 
 
       {/* ============================================================
-          MARKETPLACE STRUCTURE
+          MARKETPLACE OVERVIEW
       ============================================================ */}
 
       <section className="section">
@@ -189,11 +178,11 @@ export default function Home() {
 
             <div>
               <span className="eyebrow">
-                GENERAL PLATFORM STRUCTURE
+                MARKETPLACE
               </span>
 
               <h2>
-                One marketplace, with agriculture at its center.
+                Three marketplaces under one MarketBridge platform.
               </h2>
             </div>
 
@@ -202,94 +191,30 @@ export default function Home() {
 
           <div className="three-grid">
 
-            {marketplaceCategories.map((category) => (
+            {marketplaceCards.map((marketplace) => (
 
               <article
                 className="feature-card"
-                key={category.number}
+                key={marketplace.number}
               >
 
                 <span className="feature-no">
-                  {category.number}
+                  {marketplace.number}
                 </span>
 
                 <h3>
-                  {category.title}
+                  {marketplace.title}
                 </h3>
 
                 <p>
-                  {category.description}
+                  {marketplace.description}
                 </p>
 
-                <Link
-                  className="text-link"
-                  to={category.link}
-                >
-                  Explore →
-                </Link>
+                <ul className="marketplace-list">
 
-              </article>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ============================================================
-          AGRICULTURAL PRODUCERS
-      ============================================================ */}
-
-      <section className="section section-alt">
-
-        <div className="container-wide">
-
-          <div className="section-heading">
-
-            <div>
-              <span className="eyebrow">
-                AGRICULTURAL PRODUCERS
-              </span>
-
-              <h2>
-                Built first around farmers and agricultural sellers.
-              </h2>
-
-              <p>
-                MarketBridge gives agricultural producers a structured
-                way to present their products, reach buyers and manage
-                transactions from listing through delivery.
-              </p>
-            </div>
-
-          </div>
-
-
-          <div className="three-grid">
-
-            {agriculturalCategories.map((category) => (
-
-              <article
-                className="feature-card"
-                key={category.title}
-              >
-
-                <h3>
-                  {category.title}
-                </h3>
-
-                <p>
-                  {category.description}
-                </p>
-
-                <ul className="category-list">
-
-                  {category.items.map((item) => (
-                    <li key={item}>
-                      ✓ {item}
+                  {marketplace.features.map((feature) => (
+                    <li key={feature}>
+                      ✓ {feature}
                     </li>
                   ))}
 
@@ -297,9 +222,9 @@ export default function Home() {
 
                 <Link
                   className="text-link"
-                  to={category.link}
+                  to={marketplace.link}
                 >
-                  Explore agricultural market →
+                  {marketplace.button}
                 </Link>
 
               </article>
@@ -314,96 +239,7 @@ export default function Home() {
 
 
       {/* ============================================================
-          AGRICULTURAL MARKET FOCUS
-      ============================================================ */}
-
-      <section className="section">
-
-        <div className="container-wide split">
-
-          <div>
-
-            <span className="eyebrow">
-              AGRICULTURAL MARKET FOCUS
-            </span>
-
-            <h2>
-              Help farmers find suitable buyers before
-              perishable produce loses value.
-            </h2>
-
-            <p>
-              Agricultural products can be time-sensitive. MarketBridge
-              is designed to make the process from farm listing to buyer,
-              inspection, negotiation, transport and delivery more
-              organized.
-            </p>
-
-            <p>
-              Sellers retain ownership and control of their products.
-              MarketBridge facilitates the marketplace rather than
-              purchasing or owning the produce.
-            </p>
-
-            <Link
-              className="text-link"
-              to="/listings"
-            >
-              Browse agricultural listings →
-            </Link>
-
-          </div>
-
-
-          <div className="mini-panel">
-
-            <strong>
-              Farm → Buyer
-            </strong>
-
-            <span>
-              Direct marketplace connection
-            </span>
-
-            <hr />
-
-            <strong>
-              Quality evidence
-            </strong>
-
-            <span>
-              Quantity, grade, photos and inspection records
-            </span>
-
-            <hr />
-
-            <strong>
-              Seller price authority
-            </strong>
-
-            <span>
-              Buyers make offers; sellers decide what to accept
-            </span>
-
-            <hr />
-
-            <strong>
-              Transport choice
-            </strong>
-
-            <span>
-              Own truck or hire a registered transporter
-            </span>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      {/* ============================================================
-          OTHER GOODS
+          AGRICULTURAL MARKETPLACE
       ============================================================ */}
 
       <section className="section section-alt">
@@ -413,30 +249,32 @@ export default function Home() {
           <div>
 
             <span className="eyebrow">
-              OTHER GOODS
+              AGRICULTURAL MARKETPLACE
             </span>
 
             <h2>
-              More than agricultural produce.
+              From farm fields to agricultural buyers.
             </h2>
 
             <p>
-              The general MarketBridge marketplace can also accommodate
-              other useful physical goods and services outside the
-              agricultural produce marketplace.
+              Farmers and agricultural producers can list their
+              produce directly on MarketBridge. Buyers can discover
+              available lots, communicate with sellers, make offers,
+              request inspection and arrange delivery.
             </p>
 
             <p>
-              Examples include electronics, houses and property-related
-              listings, farm equipment, machines and other products
-              relevant to buyers and sellers.
+              The farmer or producer remains the owner of the
+              agricultural product. MarketBridge facilitates the
+              transaction rather than purchasing or owning the
+              produce.
             </p>
 
             <Link
               className="text-link"
-              to="/marketplace"
+              to="/agricultural"
             >
-              Explore general marketplace →
+              Enter Agricultural Marketplace →
             </Link>
 
           </div>
@@ -444,43 +282,98 @@ export default function Home() {
 
           <div className="mini-panel">
 
-            <strong>
-              Electronics
-            </strong>
+            <strong>Farmers</strong>
+            <span>List agricultural produce</span>
 
+            <hr />
+
+            <strong>Buyers</strong>
+            <span>Discover and negotiate</span>
+
+            <hr />
+
+            <strong>Inspectors</strong>
+            <span>Independent quality verification</span>
+
+            <hr />
+
+            <strong>Transporters</strong>
+            <span>Own truck or hire through MarketBridge</span>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* ============================================================
+          PRODUCT MARKETPLACE
+      ============================================================ */}
+
+      <section className="section">
+
+        <div className="container-wide split reverse-mobile">
+
+          <div className="mini-panel">
+
+            <strong>Physical Products</strong>
             <span>
-              Devices and useful electronic goods
+              Products supplied by independent sellers
             </span>
 
             <hr />
 
-            <strong>
-              Houses & property
-            </strong>
-
+            <strong>Sellers</strong>
             <span>
-              Property listings and related opportunities
+              Create listings and manage orders
             </span>
 
             <hr />
 
-            <strong>
-              Farm equipment
-            </strong>
-
+            <strong>Buyers</strong>
             <span>
-              Agricultural tools and equipment
+              Discover products and purchase
             </span>
 
             <hr />
 
-            <strong>
-              Machines & other goods
-            </strong>
-
+            <strong>Marketplace</strong>
             <span>
-              Machinery, pest-related products and other marketplace goods
+              Communication, records and transaction support
             </span>
+
+          </div>
+
+
+          <div>
+
+            <span className="eyebrow">
+              PRODUCT MARKETPLACE
+            </span>
+
+            <h2>
+              A marketplace beyond agricultural produce.
+            </h2>
+
+            <p>
+              MarketBridge can also connect buyers and sellers of
+              general physical products. These products are
+              independently supplied and owned by the sellers.
+            </p>
+
+            <p>
+              This gives MarketBridge a broader marketplace structure
+              while keeping the Agricultural section specialized for
+              farm and agricultural transactions.
+            </p>
+
+            <Link
+              className="text-link"
+              to="/products"
+            >
+              Explore Physical Products →
+            </Link>
 
           </div>
 
@@ -493,52 +386,9 @@ export default function Home() {
           DIGITAL MARKETPLACE
       ============================================================ */}
 
-      <section className="section">
+      <section className="section section-alt">
 
-        <div className="container-wide split reverse-mobile">
-
-          <div className="mini-panel digital-panel">
-
-            <strong>
-              eBooks
-            </strong>
-
-            <span>
-              Guides, books and useful digital publications
-            </span>
-
-            <hr />
-
-            <strong>
-              Courses
-            </strong>
-
-            <span>
-              Learning materials and educational products
-            </span>
-
-            <hr />
-
-            <strong>
-              Documents & templates
-            </strong>
-
-            <span>
-              Business, agricultural and professional resources
-            </span>
-
-            <hr />
-
-            <strong>
-              Graphics & digital files
-            </strong>
-
-            <span>
-              Independent digital products from sellers
-            </span>
-
-          </div>
-
+        <div className="container-wide split">
 
           <div>
 
@@ -547,21 +397,44 @@ export default function Home() {
             </span>
 
             <h2>
-              Sell and discover useful digital products.
+              Digital products from independent creators and sellers.
             </h2>
 
             <p>
-              MarketBridge also supports independent digital sellers.
-              Sellers retain ownership of their digital products and
-              supply them through the marketplace.
+              MarketBridge also supports digital commerce. Sellers
+              can offer useful digital products while retaining
+              ownership and responsibility for their products.
             </p>
 
             <Link
               className="text-link"
               to="/digital"
             >
-              Explore digital marketplace →
+              Explore Digital Marketplace →
             </Link>
+
+          </div>
+
+
+          <div className="mini-panel digital-panel">
+
+            <strong>eBooks</strong>
+            <span>Books and digital publications</span>
+
+            <hr />
+
+            <strong>Courses</strong>
+            <span>Educational and professional materials</span>
+
+            <hr />
+
+            <strong>Software</strong>
+            <span>Software and digital licenses</span>
+
+            <hr />
+
+            <strong>Creative Products</strong>
+            <span>Graphics, photos, templates and media</span>
 
           </div>
 
@@ -571,10 +444,10 @@ export default function Home() {
 
 
       {/* ============================================================
-          TRANSACTION WORKFLOW
+          HOW MARKETBRIDGE WORKS
       ============================================================ */}
 
-      <section className="section section-alt">
+      <section className="section">
 
         <div className="container-wide">
 
@@ -582,18 +455,12 @@ export default function Home() {
 
             <div>
               <span className="eyebrow">
-                HOW MARKETBRIDGE WORKS
+                HOW IT WORKS
               </span>
 
               <h2>
-                From listing to completed delivery.
+                MarketBridge facilitates the marketplace.
               </h2>
-
-              <p>
-                The platform is organized around the actual transaction,
-                while keeping the buyer, seller and service providers
-                in control of their respective decisions.
-              </p>
             </div>
 
           </div>
@@ -601,7 +468,7 @@ export default function Home() {
 
           <div className="three-grid">
 
-            {workflow.map(([number, title, description]) => (
+            {pillars.map(([number, title, description]) => (
 
               <article
                 className="feature-card"
@@ -632,67 +499,66 @@ export default function Home() {
 
 
       {/* ============================================================
-          TRANSPORT PRINCIPLE
+          TRANSACTION WORKFLOW
       ============================================================ */}
 
-      <section className="section">
+      <section className="section section-alt">
 
-        <div className="container-wide split">
+        <div className="container-wide">
 
-          <div>
+          <span className="eyebrow">
+            MARKETPLACE TRANSACTION
+          </span>
 
-            <span className="eyebrow">
-              TRANSPORT
-            </span>
+          <h2>
+            Discover → Verify → Negotiate → Buy → Deliver
+          </h2>
 
-            <h2>
-              Transport is controlled by the transaction parties.
-            </h2>
+          <div className="hero-card">
 
-            <p>
-              Buyers and sellers can arrange transportation according
-              to their transaction. They can use their own truck or
-              hire a registered transporter through MarketBridge.
-            </p>
+            <div className="flow">
 
-            <p>
-              MarketBridge does not automatically assign a truck to a
-              seller. When transport is hired, registered truck owners
-              can respond to open transport requests and accept jobs.
-            </p>
+              <div className="flow-step">
+                <span>01</span>
+                Seller / Farmer lists
+              </div>
 
-          </div>
+              <div className="flow-step">
+                <span>02</span>
+                Buyer discovers
+              </div>
 
+              <div className="flow-step">
+                <span>03</span>
+                Inspection / evidence
+              </div>
 
-          <div className="mini-panel">
+              <div className="flow-step">
+                <span>04</span>
+                Offer / negotiation
+              </div>
 
-            <strong>
-              OWN TRUCK
-            </strong>
+              <div className="flow-step">
+                <span>05</span>
+                Order & payment
+              </div>
 
-            <span>
-              Buyer or seller uses a truck they own
-            </span>
+              <div className="flow-step">
+                <span>06</span>
+                Own truck / hire transport
+              </div>
 
-            <hr />
+              <div className="flow-step">
+                <span>07</span>
+                Delivery
+              </div>
 
-            <strong>
-              HIRE TRANSPORTER
-            </strong>
+              <div className="flow-step">
+                <span>08</span>
+                Buyer confirms receipt
+              </div>
 
-            <span>
-              Buyer or seller requests a registered transporter
-            </span>
-
-            <hr />
-
-            <strong>
-              TRANSPORT TRACKING
-            </strong>
-
-            <span>
-              Requested → Accepted → Pickup → In Transit → Delivered
-            </span>
+            </div>
 
           </div>
 
@@ -705,7 +571,7 @@ export default function Home() {
           FINAL CTA
       ============================================================ */}
 
-      <section className="section section-alt">
+      <section className="section">
 
         <div className="container-wide">
 
@@ -714,18 +580,16 @@ export default function Home() {
             <div>
 
               <span className="eyebrow">
-                MARKETBRIDGE
+                JOIN MARKETBRIDGE
               </span>
 
               <h2>
-                Start with agriculture. Grow into a complete marketplace.
+                Buy, sell, produce and participate in one platform.
               </h2>
 
               <p>
-                Whether you are a farmer, buyer, seller, investor,
-                inspector, transporter or digital-product seller,
-                MarketBridge is designed to connect the right parties
-                around real transactions.
+                Choose the marketplace that fits what you want to
+                buy or sell.
               </p>
 
             </div>
@@ -736,24 +600,24 @@ export default function Home() {
           <div className="hero-actions">
 
             <Link
-              className="btn btn-primary btn-lg"
-              to="/listings"
+              className="btn btn-primary"
+              to="/agricultural"
             >
-              Explore agricultural market →
+              Agricultural
             </Link>
 
             <Link
-              className="btn btn-light btn-lg"
-              to="/marketplace"
+              className="btn btn-light"
+              to="/products"
             >
-              Explore marketplace
+              Products
             </Link>
 
             <Link
-              className="btn btn-light btn-lg"
+              className="btn btn-light"
               to="/digital"
             >
-              Digital products
+              Digital
             </Link>
 
           </div>
