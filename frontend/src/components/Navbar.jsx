@@ -23,8 +23,9 @@ export default function Navbar() {
           <span>Market<span>Bridge</span></span>
         </Link>
         <div className="nav-links">
-          <Link className={location.pathname === '/listings' ? 'active' : ''} to="/listings">Agriculture</Link>
-          <Link className={location.pathname === '/digital' ? 'active' : ''} to="/digital">Digital</Link>
+          <Link className={location.pathname === '/agricultural' || location.pathname === '/listings' ? 'active' : ''} to="/agricultural">Agricultural</Link>
+          <Link className={location.pathname.startsWith('/products') ? 'active' : ''} to="/products">Product</Link>
+          <Link className={location.pathname.startsWith('/digital') ? 'active' : ''} to="/digital">Digital</Link>
           {user && roleLinks.filter(([r]) => user.roles?.includes(r)).map(([r, href, label]) => (
             <Link key={r} className={location.pathname === href ? 'active' : ''} to={href}>{label}</Link>
           ))}
