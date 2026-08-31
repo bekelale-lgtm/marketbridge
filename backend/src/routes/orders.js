@@ -1,22 +1,14 @@
-// backend/src/routes/order.js
+// backend/src/routes/orders.js
 //
 // MarketBridge — Order Routes
 //
-// Core principles:
-// 1. MarketBridge is an intermediary marketplace.
-// 2. Seller remains owner/price authority over agricultural produce.
-// 3. Transport may be arranged by:
-//      - SELLER
-//      - BUYER
-//      - JOINT
-// 4. Transport may use:
-//      - OWN_TRUCK
-//      - HIRE_TRANSPORTER
-// 5. OWN_TRUCK does NOT create a transporter-hiring commission.
-// 6. Hired transport is selected through the TransportJob/TransportQuote
-//    workflow.
-// 7. Buyer confirms receipt only after the transport job reaches DELIVERED.
-//
+// Rules:
+// - Buyer and seller can view their orders.
+// - Admin can view any order.
+// - Buyer confirms receipt only after transport reaches DELIVERED.
+// - Transport details include selected truck/transporter and quotes.
+// - OWN_TRUCK does not create a transporter commission.
+// - HIRE_TRANSPORTER uses the TransportQuote workflow.
 
 const express = require('express');
 const prisma = require('../config/db');
@@ -26,32 +18,83 @@ const router = express.Router();
 
 
 // ============================================================================
-// GET ALL ORDERS FOR CURRENT USER
+// COMMON TRANSPORT INCLUDE
 // ============================================================================
-//
-// Returns orders where the authenticated user is either:
-// - buyer
-// - seller
-//
-// Transport details include:
-// - arranging party
-// - transport method
-// - current transport status
-// - selected transporter
-// - selected truck
-// - transporter quotes
-//
+
+const transportInclude = {
+  truckOwner: {
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      rating: true,
+      verificationStatus: true,
+    },
+  },
+
+  truck: {
+    select: {
+      id: true,
+      registration: true,
+      truckType: true,
+      capacity: true,
+      operatingArea: true,
+      availability: true,
+      verificationStatus: true,
+      rating: true,
+    },
+  },
+
+  quotes: {
+    include: {
+      truckOwner: {
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          rating: true,
+          verificationStatus: true,
+        },
+      },
+
+      truck: {
+        select: {
+          id: true,
+          registration: true,
+          truckType: true,
+          capacity: true,
+          operatingArea: true,
+          availability: true,
+          verificationStatus: true,
+          rating: true,
+        },
+      },
+    },
+
+    orderBy: {
+      amount: 'asc',
+    },
+  },
+};
+
+
+// ============================================================================
+// GET CURRENT USER ORDERS
 // ============================================================================
 
 router.get('/', authenticate, async (req, res) => {
   try {
+    const isAdmin = req.user.roles?.includes('ADMIN');
+
     const orders = await prisma.order.findMany({
-      where: {
-        OR: [
-          { buyerId: req.user.id },
-          { sellerId: req.user.id },
-        ],
-      },
+      where: isAdmin
+        ? {}
+        : {
+            OR: [
+              { buyerId: req.user.id },
+              { sellerId: req.user.id },
+            ],
+          },
 
       include: {
         listing: true,
@@ -60,7 +103,10 @@ router.get('/', authenticate, async (req, res) => {
           select: {
             id: true,
             name: true,
+            phone: true,
+            location: true,
             rating: true,
+            verificationStatus: true,
           },
         },
 
@@ -68,72 +114,19 @@ router.get('/', authenticate, async (req, res) => {
           select: {
             id: true,
             name: true,
+            phone: true,
+            location: true,
             rating: true,
+            verificationStatus: true,
           },
         },
 
         transportJob: {
-          include: {
-            truckOwner: {
-              select: {
-                id: true,
-                name: true,
-                phone: true,
-                rating: true,
-                verificationStatus: true,
-              },
-            },
-
-            truck: {
-              select: {
-                id: true,
-                registration: true,
-                truckType: true,
-                capacity: true,
-                operatingArea: true,
-                availability: true,
-                verificationStatus: true,
-                rating: true,
-              },
-            },
-
-            quotes: {
-              include: {
-                truckOwner: {
-                  select: {
-                    id: true,
-                    name: true,
-                    phone: true,
-                    rating: true,
-                    verificationStatus: true,
-                  },
-                },
-
-                truck: {
-                  select: {
-                    id: true,
-                    registration: true,
-                    truckType: true,
-                    capacity: true,
-                    operatingArea: true,
-                    availability: true,
-                    verificationStatus: true,
-                    rating: true,
-                  },
-                },
-              },
-
-              orderBy: {
-                amount: 'asc',
-              },
-            },
-          },
+          include: transportInclude,
         },
 
         payments: true,
-
         disputes: true,
-
         ratings: true,
       },
 
@@ -144,7 +137,7 @@ router.get('/', authenticate, async (req, res) => {
 
     return res.json({ orders });
   } catch (error) {
-    console.error('GET /orders error:', error);
+    console.error('GET /api/orders error:', error);
 
     return res.status(500).json({
       error: 'Failed to load orders',
@@ -155,10 +148,6 @@ router.get('/', authenticate, async (req, res) => {
 
 // ============================================================================
 // GET SINGLE ORDER
-// ============================================================================
-//
-// Buyer, seller, or admin may view the order.
-//
 // ============================================================================
 
 router.get('/:id', authenticate, async (req, res) => {
@@ -194,67 +183,11 @@ router.get('/:id', authenticate, async (req, res) => {
         },
 
         transportJob: {
-          include: {
-            truckOwner: {
-              select: {
-                id: true,
-                name: true,
-                phone: true,
-                rating: true,
-                verificationStatus: true,
-              },
-            },
-
-            truck: {
-              select: {
-                id: true,
-                registration: true,
-                truckType: true,
-                capacity: true,
-                operatingArea: true,
-                availability: true,
-                verificationStatus: true,
-                rating: true,
-              },
-            },
-
-            quotes: {
-              include: {
-                truckOwner: {
-                  select: {
-                    id: true,
-                    name: true,
-                    phone: true,
-                    rating: true,
-                    verificationStatus: true,
-                  },
-                },
-
-                truck: {
-                  select: {
-                    id: true,
-                    registration: true,
-                    truckType: true,
-                    capacity: true,
-                    operatingArea: true,
-                    availability: true,
-                    verificationStatus: true,
-                    rating: true,
-                  },
-                },
-              },
-
-              orderBy: {
-                amount: 'asc',
-              },
-            },
-          },
+          include: transportInclude,
         },
 
         payments: true,
-
         disputes: true,
-
         ratings: true,
 
         messages: {
@@ -283,7 +216,7 @@ router.get('/:id', authenticate, async (req, res) => {
 
     return res.json({ order });
   } catch (error) {
-    console.error('GET /orders/:id error:', error);
+    console.error('GET /api/orders/:id error:', error);
 
     return res.status(500).json({
       error: 'Failed to load order',
@@ -296,122 +229,115 @@ router.get('/:id', authenticate, async (req, res) => {
 // BUYER CONFIRMS RECEIPT
 // ============================================================================
 //
-// This is the final physical-delivery confirmation.
+// Required:
 //
-// Required sequence:
-//
-// TransportJob
-//     ↓
-// DELIVERED
-//     ↓
-// Buyer confirms receipt
-//     ↓
-// Order COMPLETED
-//
-// The buyer cannot confirm receipt while transport is still:
-// - REQUESTED
-// - QUOTED
-// - ACCEPTED
-// - PICKUP
-// - IN_TRANSIT
+// TRANSPORT DELIVERED
+//        ↓
+// BUYER CONFIRMS RECEIPT
+//        ↓
+// ORDER COMPLETED
 //
 // ============================================================================
 
-router.patch(
-  '/:id/confirm-receipt',
-  authenticate,
-  async (req, res) => {
-    try {
-      const order = await prisma.order.findUnique({
-        where: {
-          id: req.params.id,
-        },
+router.patch('/:id/confirm-receipt', authenticate, async (req, res) => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: {
+        id: req.params.id,
+      },
 
-        include: {
-          transportJob: true,
-        },
+      include: {
+        transportJob: true,
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        error: 'Order not found',
       });
+    }
 
-      if (!order) {
-        return res.status(404).json({
-          error: 'Order not found',
-        });
-      }
+    if (order.buyerId !== req.user.id) {
+      return res.status(403).json({
+        error: 'Only the buyer can confirm receipt',
+      });
+    }
 
-      // Only the buyer can confirm receipt.
-      if (order.buyerId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Only the buyer can confirm receipt',
-        });
-      }
+    if (order.status === 'COMPLETED') {
+      return res.status(400).json({
+        error: 'Order has already been completed',
+      });
+    }
 
-      // Prevent duplicate completion.
-      if (order.status === 'COMPLETED') {
-        return res.status(400).json({
-          error: 'Order has already been completed',
-        });
-      }
+    if (!order.transportJob) {
+      return res.status(400).json({
+        error: 'No transport record exists for this order',
+      });
+    }
 
-      // A completed physical agricultural order must have a delivery record.
-      if (!order.transportJob) {
-        return res.status(400).json({
-          error: 'No transport record exists for this order',
-        });
-      }
+    if (order.transportJob.status !== 'DELIVERED') {
+      return res.status(400).json({
+        error:
+          `Receipt cannot be confirmed while transport status is ${order.transportJob.status}`,
+      });
+    }
 
-      if (order.transportJob.status !== 'DELIVERED') {
-        return res.status(400).json({
-          error:
-            `Receipt cannot be confirmed while transport status is ${order.transportJob.status}`,
-        });
-      }
+    const updated = await prisma.order.update({
+      where: {
+        id: order.id,
+      },
 
-      const updated = await prisma.order.update({
-        where: {
-          id: order.id,
-        },
+      data: {
+        status: 'COMPLETED',
+      },
 
-        data: {
-          status: 'COMPLETED',
-        },
+      include: {
+        listing: true,
 
-        include: {
-          listing: true,
-          transportJob: {
-            include: {
-              truckOwner: {
-                select: {
-                  id: true,
-                  name: true,
-                  phone: true,
-                  rating: true,
-                },
-              },
-
-              truck: {
-                select: {
-                  id: true,
-                  registration: true,
-                  truckType: true,
-                  capacity: true,
-                },
-              },
-            },
+        buyer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            rating: true,
           },
-          payments: true,
         },
-      });
 
-      return res.json({
-        message: 'Receipt confirmed. Order completed.',
-        order: updated,
-      });
-    } catch (error) {
-      console.error(
-        'PATCH /orders/:id/confirm-receipt error:',
-        error
-      );
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            rating: true,
+          },
+        },
 
+        transportJob: {
+          include: transportInclude,
+        },
+
+        payments: true,
+      },
+    });
+
+    return res.json({
+      message: 'Receipt confirmed. Order completed.',
+      order: updated,
+    });
+  } catch (error) {
+    console.error(
+      'PATCH /api/orders/:id/confirm-receipt error:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Failed to confirm receipt',
+    });
+  }
+});
+
+
+module.exports = router;
       return res.status(500).json({
         error: 'Failed to confirm receipt',
       });
