@@ -157,34 +157,19 @@ export default function TruckOwnerDashboard() {
     }
   }
 
-  async function respondToJob(jobId, action) {
-    setActionLoading(`job-${jobId}-${action}`);
-
+  async function respondToJob(job) {
+    const available = trucks.filter(t => t.availability === 'AVAILABLE' && (!job.requiredCapacity || t.capacity >= Number(job.requiredCapacity)));
+    if (!available.length) { toast('No available truck meets this request.'); return; }
+    const amount = window.prompt(`Transport quote in ETB for ${job.load}:`);
+    if (amount === null) return;
+    if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) { toast('Enter a valid positive quote.'); return; }
+    setActionLoading(`job-${job.id}-QUOTE`);
     try {
-      await api.patch(
-        `/transport/${jobId}/respond`,
-        { action }
-      );
-
-      toast(
-        action === 'QUOTE'
-          ? 'Quote response submitted.'
-          : 'Transport job accepted.'
-      );
-
-      await loadAll(false);
-
-      setActiveTab('jobs');
-    } catch (err) {
-      toast(
-        getErrorMessage(
-          err,
-          'Could not respond to transport request.'
-        )
-      );
-    } finally {
-      setActionLoading(null);
-    }
+      await api.post(`/transport/${job.id}/quotes`, { truckId: available[0].id, amount: Number(amount) });
+      toast('Transport quote submitted. The buyer/seller can now choose your quote.');
+      await loadAll(false); setActiveTab('jobs');
+    } catch (err) { toast(getErrorMessage(err,'Could not submit transport quote.')); }
+    finally { setActionLoading(null); }
   }
 
   async function updateStatus(jobId, status) {
@@ -678,10 +663,6 @@ export default function TruckOwnerDashboard() {
 
               {openJobs.map((job) => {
 
-                const accepting =
-                  actionLoading ===
-                  `job-${job.id}-ACCEPT`;
-
                 const quoting =
                   actionLoading ===
                   `job-${job.id}-QUOTE`;
@@ -744,37 +725,7 @@ export default function TruckOwnerDashboard() {
                         flexWrap: 'wrap',
                       }}
                     >
-                      <button
-                        type="button"
-                        className="sd-btn sd-btn-primary"
-                        disabled={accepting || quoting}
-                        onClick={() =>
-                          respondToJob(
-                            job.id,
-                            'ACCEPT'
-                          )
-                        }
-                      >
-                        {accepting
-                          ? 'Accepting...'
-                          : 'Accept job'}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="sd-btn sd-btn-outline"
-                        disabled={accepting || quoting}
-                        onClick={() =>
-                          respondToJob(
-                            job.id,
-                            'QUOTE'
-                          )
-                        }
-                      >
-                        {quoting
-                          ? 'Sending...'
-                          : 'Send quote'}
-                      </button>
+                      <button type="button" className="sd-btn sd-btn-primary" disabled={quoting} onClick={() => respondToJob(job)}>{quoting ? 'Sending...' : 'Submit transport quote'}</button>
                     </div>
 
                   </div>
