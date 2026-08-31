@@ -62,7 +62,7 @@ model Listing {
   sellerId String
   category ListingCategory @default(AGRICULTURAL)
   title String?
-  cropType String
+  cropType String?
   quantity Float
   unit String
   askingPrice Float
@@ -72,6 +72,7 @@ model Listing {
   readinessDate DateTime?
   photos String[]
   videos String[]
+  description String?
   status ListingStatus @default(DRAFT)
   createdByInspectorId String?
   createdAt DateTime @default(now())
@@ -199,6 +200,7 @@ model TransportJob {
   load String
   requiredCapacity Float?
   specialRequirements String?
+  agreedAmount Float?
   status TransportStatus @default(REQUESTED)
   pickupConfirmedAt DateTime?
   deliveredConfirmedAt DateTime?
