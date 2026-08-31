@@ -1,76 +1,17 @@
 // ============================================================
-// MARKETBRIDGE — FINAL PRISMA DATABASE SCHEMA
+// MARKETBRIDGE — PRISMA DATABASE SCHEMA
 // PostgreSQL
 //
-// Platform:
-//   Ethiopian Agricultural & Digital Marketplace
-//
-// CORE BUSINESS RULES
-// ------------------------------------------------------------
-// 1. MarketBridge is an intermediary marketplace.
-//
-// 2. Sellers remain owners and price authorities for their
-//    agricultural products.
-//
-// 3. Buyers and sellers can arrange transport.
-//
-// 4. Transport is NOT automatically assigned after purchase.
-//
-// 5. Transport arranging parties:
-//      SELLER
-//      BUYER
-//      JOINT
-//
-// 6. Transport methods:
-//      OWN_TRUCK
-//      HIRE_TRANSPORTER
-//
-// 7. Buyers/sellers may use their own registered trucks.
-//
-// 8. Buyers/sellers may hire registered truck owners through
-//    MarketBridge.
-//
-// 9. Hired transport supports multiple transporter quotes.
-//
-// 10. Buyer/seller selects the transporter/quote.
-//
-// 11. OWN_TRUCK does NOT generate transporter-hiring commission.
-//
-// 12. Transport lifecycle:
-//
-//      REQUESTED
-//          ↓
-//      QUOTED / ACCEPTED
-//          ↓
-//      PICKUP
-//          ↓
-//      IN_TRANSIT
-//          ↓
-//      DELIVERED
-//          ↓
-//      BUYER CONFIRMS RECEIPT
-//          ↓
-//      ORDER COMPLETED
-//
-// 13. Buyer cannot confirm receipt until transport is DELIVERED.
-//
-// 14. Truck owners can:
-//      - register trucks
-//      - set availability
-//      - see open hire requests
-//      - submit quotes
-//      - accept jobs
-//      - update transport status
-//
-// 15. Transport remains separate from product payment,
-//     inspection, disputes and ratings, while being linked
-//     to the Order.
-//
-// ============================================================
-
-
-// ============================================================
-// GENERATOR / DATABASE
+// Core rules:
+// - MarketBridge is an intermediary marketplace.
+// - Seller remains owner/price authority over agricultural produce.
+// - Buyers and sellers may arrange transport.
+// - Buyers and sellers may use their own trucks.
+// - Buyers and sellers may hire registered truck owners.
+// - MarketBridge does not automatically assign transport after purchase.
+// - OWN_TRUCK does not create a transporter-hiring commission.
+// - Hired transport can use TransportJob + TransportQuote workflow.
+// - Buyer confirms physical receipt only after transport is DELIVERED.
 // ============================================================
 
 generator client {
@@ -81,7 +22,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 
 // ============================================================
 // ENUMS
@@ -96,11 +36,6 @@ enum Role {
   ADMIN
 }
 
-
-// ============================================================
-// LISTINGS
-// ============================================================
-
 enum ListingCategory {
   AGRICULTURAL
   DIGITAL
@@ -114,11 +49,6 @@ enum ListingStatus {
   CANCELLED
 }
 
-
-// ============================================================
-// OFFERS
-// ============================================================
-
 enum OfferStatus {
   PENDING
   COUNTERED
@@ -126,11 +56,6 @@ enum OfferStatus {
   REJECTED
   WITHDRAWN
 }
-
-
-// ============================================================
-// INSPECTIONS
-// ============================================================
 
 enum InspectionMode {
   SELLER_REQUESTED
@@ -146,11 +71,6 @@ enum InspectionStatus {
   CANCELLED
 }
 
-
-// ============================================================
-// ORDERS
-// ============================================================
-
 enum OrderStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -161,11 +81,6 @@ enum OrderStatus {
   DISPUTED
   CANCELLED
 }
-
-
-// ============================================================
-// TRANSPORT
-// ============================================================
 
 enum ArrangingParty {
   SELLER
@@ -188,24 +103,6 @@ enum TransportStatus {
   CANCELLED
 }
 
-
-// ============================================================
-// TRANSPORT QUOTES
-// ============================================================
-//
-// A hire request can receive multiple quotes.
-//
-// Example:
-//
-// TransportJob
-//      ├── Quote from Truck Owner A
-//      ├── Quote from Truck Owner B
-//      └── Quote from Truck Owner C
-//
-// Buyer/seller can then select one.
-//
-// ============================================================
-
 enum TransportQuoteStatus {
   PENDING
   ACCEPTED
@@ -213,21 +110,11 @@ enum TransportQuoteStatus {
   WITHDRAWN
 }
 
-
-// ============================================================
-// TRUCK AVAILABILITY
-// ============================================================
-
 enum TruckAvailability {
   AVAILABLE
   BUSY
   OFFLINE
 }
-
-
-// ============================================================
-// PAYMENTS
-// ============================================================
 
 enum PaymentType {
   MARKETPLACE
@@ -250,11 +137,6 @@ enum PaymentStatus {
   REFUNDED
 }
 
-
-// ============================================================
-// ADVERTISING
-// ============================================================
-
 enum AdType {
   FEATURED_LISTING
   TOP_OF_CATEGORY
@@ -270,11 +152,6 @@ enum AdStatus {
   REJECTED
 }
 
-
-// ============================================================
-// DISPUTES
-// ============================================================
-
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
@@ -282,18 +159,12 @@ enum DisputeStatus {
   REJECTED
 }
 
-
-// ============================================================
-// VERIFICATION
-// ============================================================
-
 enum VerificationStatus {
   UNVERIFIED
   PENDING
   VERIFIED
   REJECTED
 }
-
 
 // ============================================================
 // USER
@@ -305,1237 +176,466 @@ model User {
   email              String             @unique
   phone              String?
   passwordHash       String
-
   roles              Role[]
-
   location           String?
-
   verificationStatus VerificationStatus @default(UNVERIFIED)
+  rating             Float              @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
+  listings             Listing[]          @relation("SellerListings")
+  offersMade           Offer[]            @relation("BuyerOffers")
+
+  inspectionsRequested InspectionRequest[] @relation("Requester")
+  inspectionsPerformed InspectionRequest[] @relation("Inspector")
+
+  trucks               Truck[]
+
+  ordersAsBuyer        Order[]            @relation("BuyerOrders")
+  ordersAsSeller       Order[]            @relation("SellerOrders")
+
+  transportJobsHauled  TransportJob[]     @relation("TruckOwnerJobs")
+  transportQuotes      TransportQuote[]   @relation("TruckOwnerQuotes")
+
+  digitalProducts      DigitalProduct[]
+  ads                  Advertisement[]
+
+  ratingsGiven         Rating[]            @relation("RatingsGiven")
+  ratingsReceived      Rating[]            @relation("RatingsReceived")
+
+  messagesSent         Message[]           @relation("MessagesSent")
+  messagesReceived     Message[]           @relation("MessagesReceived")
+
+  disputesRaised       Dispute[]           @relation("DisputeRaisedBy")
+  disputesAgainst      Dispute[]           @relation("DisputeAgainst")
+}
+
+// ============================================================
+// AGRICULTURAL / DIGITAL LISTINGS
+// ============================================================
+
+model Listing {
+  id                   String          @id @default(uuid())
+  seller               User            @relation("SellerListings", fields: [sellerId], references: [id])
+  sellerId             String
+
+  category             ListingCategory @default(AGRICULTURAL)
+
+  cropType             String
+  quantity             Float
+  unit                 String
+  askingPrice          Float
+  minAcceptablePrice   Float?
+
+  location             String
+  harvestedDate        DateTime?
+  readinessDate        DateTime?
+
+  photos               String[]
+  videos               String[]
+
+  status               ListingStatus   @default(DRAFT)
+
+  createdByInspectorId  String?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  offers               Offer[]
+  inspectionRequests   InspectionRequest[]
+  orders               Order[]
+  ads                  Advertisement[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([status])
+  @@index([location])
+}
+
+// ============================================================
+// OFFERS
+// ============================================================
+
+model Offer {
+  id             String      @id @default(uuid())
+  listing        Listing     @relation(fields: [listingId], references: [id])
+  listingId      String
+
+  buyer          User        @relation("BuyerOffers", fields: [buyerId], references: [id])
+  buyerId        String
+
+  amount         Float
+  status         OfferStatus @default(PENDING)
+  counterAmount  Float?
+  message        String?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+// ============================================================
+// INSPECTIONS
+// ============================================================
+
+model InspectionRequest {
+  id              String           @id @default(uuid())
+
+  listing         Listing          @relation(fields: [listingId], references: [id])
+  listingId       String
+
+  requestedBy     User             @relation("Requester", fields: [requestedById], references: [id])
+  requestedById   String
+
+  mode            InspectionMode
+
+  inspector       User?            @relation("Inspector", fields: [inspectorId], references: [id])
+  inspectorId     String?
+
+  status          InspectionStatus @default(REQUESTED)
+  fee             Float?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  report          InspectionReport?
+
+  @@index([listingId])
+  @@index([requestedById])
+  @@index([inspectorId])
+  @@index([status])
+}
+
+model InspectionReport {
+  id                String             @id @default(uuid())
+
+  request           InspectionRequest  @relation(fields: [requestId], references: [id])
+  requestId         String             @unique
+
+  quantity          Float
+  grade             String?
+  moisture          Float?
+  visibleDefects    String?
+  damageNotes       String?
+  packagingNotes    String?
+
+  photos            String[]
+  videos            String[]
+
+  gpsLocation       String?
+
+  inspectedAt       DateTime           @default(now())
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+
+model Order {
+  id               String          @id @default(uuid())
+
+  listing          Listing         @relation(fields: [listingId], references: [id])
+  listingId        String
+
+  buyer            User            @relation("BuyerOrders", fields: [buyerId], references: [id])
+  buyerId          String
+
+  seller           User            @relation("SellerOrders", fields: [sellerId], references: [id])
+  sellerId         String
+
+  finalPrice       Float
+  status           OrderStatus     @default(PENDING_PAYMENT)
+  arrangingParty   ArrangingParty?
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // One order has zero or one transport job.
+  transportJob     TransportJob?
+
+  payments         Payment[]
+  disputes         Dispute[]
+  ratings          Rating[]
+  messages         Message[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([listingId])
+  @@index([status])
+}
+
+// ============================================================
+// TRUCKS
+// ============================================================
+
+model Truck {
+  id                 String             @id @default(uuid())
+
+  owner              User               @relation(fields: [ownerId], references: [id])
+  ownerId            String
+
+  registration       String
+  truckType          String
+  capacity           Float
+  operatingArea      String
+
+  availability       TruckAvailability  @default(AVAILABLE)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
   rating             Float              @default(0)
 
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-
-  // ----------------------------------------------------------
-  // SELLER
-  // ----------------------------------------------------------
-
-  listings Listing[] @relation("SellerListings")
-
-
-  // ----------------------------------------------------------
-  // BUYER OFFERS
-  // ----------------------------------------------------------
-
-  offersMade Offer[] @relation("BuyerOffers")
-
-
-  // ----------------------------------------------------------
-  // INSPECTIONS
-  // ----------------------------------------------------------
-
-  inspectionsRequested InspectionRequest[] @relation("Requester")
-
-  inspectionsPerformed InspectionRequest[] @relation("Inspector")
-
-
-  // ----------------------------------------------------------
-  // TRUCKS
-  // ----------------------------------------------------------
-
-  trucks Truck[]
-
-
-  // ----------------------------------------------------------
-  // ORDERS
-  // ----------------------------------------------------------
-
-  ordersAsBuyer Order[] @relation("BuyerOrders")
-
-  ordersAsSeller Order[] @relation("SellerOrders")
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT JOBS
-  // ----------------------------------------------------------
-  //
-  // Jobs actually assigned/accepted by this truck owner.
-  //
-
-  transportJobsHauled TransportJob[] @relation("TruckOwnerJobs")
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT QUOTES
-  // ----------------------------------------------------------
-  //
-  // Quotes submitted by this truck owner.
-  //
-
-  transportQuotes TransportQuote[] @relation("TruckOwnerQuotes")
-
-
-  // ----------------------------------------------------------
-  // DIGITAL PRODUCTS
-  // ----------------------------------------------------------
-
-  digitalProducts DigitalProduct[]
-
-
-  // ----------------------------------------------------------
-  // ADVERTISING
-  // ----------------------------------------------------------
-
-  ads Advertisement[]
-
-
-  // ----------------------------------------------------------
-  // RATINGS
-  // ----------------------------------------------------------
-
-  ratingsGiven Rating[] @relation("RatingsGiven")
-
-  ratingsReceived Rating[] @relation("RatingsReceived")
-
-
-  // ----------------------------------------------------------
-  // MESSAGES
-  // ----------------------------------------------------------
-
-  messagesSent Message[] @relation("MessagesSent")
-
-  messagesReceived Message[] @relation("MessagesReceived")
-
-
-  // ----------------------------------------------------------
-  // DISPUTES
-  // ----------------------------------------------------------
-
-  disputesRaised Dispute[] @relation("DisputeRaisedBy")
-
-  disputesAgainst Dispute[] @relation("DisputeAgainst")
-}
-
-
-// ============================================================
-// LISTING
-// ============================================================
-//
-// Supports both:
-//   AGRICULTURAL
-//   DIGITAL
-//
-// Agricultural marketplace listings are primarily used by
-// farmers/sellers.
-//
-// ============================================================
-
-model Listing {
-  id String @id @default(uuid())
-
-
-  // ----------------------------------------------------------
-  // SELLER
-  // ----------------------------------------------------------
-
-  seller User @relation(
-    "SellerListings",
-    fields: [sellerId],
-    references: [id]
-  )
-
-  sellerId String
-
-
-  // ----------------------------------------------------------
-  // CATEGORY
-  // ----------------------------------------------------------
-
-  category ListingCategory @default(AGRICULTURAL)
-
-
-  // ----------------------------------------------------------
-  // PRODUCT
-  // ----------------------------------------------------------
-
-  cropType String
-
-  quantity Float
-
-  unit String
-
-  askingPrice Float
-
-  minAcceptablePrice Float?
-
-
-  // ----------------------------------------------------------
-  // LOCATION / AVAILABILITY
-  // ----------------------------------------------------------
-
-  location String
-
-  harvestedDate DateTime?
-
-  readinessDate DateTime?
-
-
-  // ----------------------------------------------------------
-  // MEDIA
-  // ----------------------------------------------------------
-
-  photos String[] @default([])
-
-  videos String[] @default([])
-
-
-  // ----------------------------------------------------------
-  // STATUS
-  // ----------------------------------------------------------
-
-  status ListingStatus @default(DRAFT)
-
-
-  // ----------------------------------------------------------
-  // INSPECTION
-  // ----------------------------------------------------------
-
-  createdByInspectorId String?
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  // ----------------------------------------------------------
-  // RELATIONS
-  // ----------------------------------------------------------
-
-  offers Offer[]
-
-  inspectionRequests InspectionRequest[]
-
-  orders Order[]
-
-  ads Advertisement[]
-
-
-  // ----------------------------------------------------------
-  // INDEXES
-  // ----------------------------------------------------------
-
-  @@index([sellerId])
-
-  @@index([status])
-
-  @@index([category])
-
-  @@index([location])
-}
-
-
-// ============================================================
-// OFFER
-// ============================================================
-//
-// Buyer makes an offer.
-// Seller controls acceptance/counter/rejection.
-//
-// ============================================================
-
-model Offer {
-  id String @id @default(uuid())
-
-
-  listing Listing @relation(
-    fields: [listingId],
-    references: [id]
-  )
-
-  listingId String
-
-
-  buyer User @relation(
-    "BuyerOffers",
-    fields: [buyerId],
-    references: [id]
-  )
-
-  buyerId String
-
-
-  amount Float
-
-  status OfferStatus @default(PENDING)
-
-  counterAmount Float?
-
-  message String?
-
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  @@index([listingId])
-
-  @@index([buyerId])
-
-  @@index([status])
-}
-
-
-// ============================================================
-// INSPECTION REQUEST
-// ============================================================
-
-model InspectionRequest {
-  id String @id @default(uuid())
-
-
-  listing Listing @relation(
-    fields: [listingId],
-    references: [id]
-  )
-
-  listingId String
-
-
-  requestedBy User @relation(
-    "Requester",
-    fields: [requestedById],
-    references: [id]
-  )
-
-  requestedById String
-
-
-  mode InspectionMode
-
-
-  inspector User? @relation(
-    "Inspector",
-    fields: [inspectorId],
-    references: [id]
-  )
-
-  inspectorId String?
-
-
-  status InspectionStatus @default(REQUESTED)
-
-  fee Float?
-
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  report InspectionReport?
-
-
-  @@index([listingId])
-
-  @@index([requestedById])
-
-  @@index([inspectorId])
-
-  @@index([status])
-}
-
-
-// ============================================================
-// INSPECTION REPORT
-// ============================================================
-
-model InspectionReport {
-  id String @id @default(uuid())
-
-
-  request InspectionRequest @relation(
-    fields: [requestId],
-    references: [id]
-  )
-
-  requestId String @unique
-
-
-  quantity Float
-
-  grade String?
-
-  moisture Float?
-
-  visibleDefects String?
-
-  damageNotes String?
-
-  packagingNotes String?
-
-
-  photos String[] @default([])
-
-  videos String[] @default([])
-
-
-  gpsLocation String?
-
-
-  inspectedAt DateTime @default(now())
-}
-
-
-// ============================================================
-// ORDER
-// ============================================================
-//
-// Created when seller accepts buyer offer.
-//
-// Transport is NOT automatically created.
-//
-// ============================================================
-
-model Order {
-  id String @id @default(uuid())
-
-
-  // ----------------------------------------------------------
-  // LISTING
-  // ----------------------------------------------------------
-
-  listing Listing @relation(
-    fields: [listingId],
-    references: [id]
-  )
-
-  listingId String
-
-
-  // ----------------------------------------------------------
-  // BUYER
-  // ----------------------------------------------------------
-
-  buyer User @relation(
-    "BuyerOrders",
-    fields: [buyerId],
-    references: [id]
-  )
-
-  buyerId String
-
-
-  // ----------------------------------------------------------
-  // SELLER
-  // ----------------------------------------------------------
-
-  seller User @relation(
-    "SellerOrders",
-    fields: [sellerId],
-    references: [id]
-  )
-
-  sellerId String
-
-
-  // ----------------------------------------------------------
-  // PRICE
-  // ----------------------------------------------------------
-
-  finalPrice Float
-
-
-  // ----------------------------------------------------------
-  // ORDER STATUS
-  // ----------------------------------------------------------
-
-  status OrderStatus @default(PENDING_PAYMENT)
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT ARRANGING PARTY
-  // ----------------------------------------------------------
-
-  arrangingParty ArrangingParty?
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT
-  // ----------------------------------------------------------
-  //
-  // One order can have zero or one transport job.
-  //
-  // Transport is created separately after purchase.
-  //
-
-  transportJob TransportJob?
-
-
-  // ----------------------------------------------------------
-  // PAYMENTS
-  // ----------------------------------------------------------
-
-  payments Payment[]
-
-
-  // ----------------------------------------------------------
-  // DISPUTES
-  // ----------------------------------------------------------
-
-  disputes Dispute[]
-
-
-  // ----------------------------------------------------------
-  // RATINGS
-  // ----------------------------------------------------------
-
-  ratings Rating[]
-
-
-  // ----------------------------------------------------------
-  // MESSAGES
-  // ----------------------------------------------------------
-
-  messages Message[]
-
-
-  @@index([listingId])
-
-  @@index([buyerId])
-
-  @@index([sellerId])
-
-  @@index([status])
-
-  @@index([arrangingParty])
-}
-
-
-// ============================================================
-// TRUCK
-// ============================================================
-//
-// Registered truck owned by a user.
-//
-// A truck owner can register multiple trucks.
-//
-// Buyers/sellers can use their own truck when the truck belongs
-// to them.
-//
-// ============================================================
-
-model Truck {
-  id String @id @default(uuid())
-
-
-  // ----------------------------------------------------------
-  // OWNER
-  // ----------------------------------------------------------
-
-  owner User @relation(
-    fields: [ownerId],
-    references: [id]
-  )
-
-  ownerId String
-
-
-  // ----------------------------------------------------------
-  // TRUCK INFORMATION
-  // ----------------------------------------------------------
-
-  registration String
-
-  truckType String
-
-  capacity Float
-
-  operatingArea String
-
-
-  // ----------------------------------------------------------
-  // STATUS
-  // ----------------------------------------------------------
-
-  availability TruckAvailability @default(AVAILABLE)
-
-  verificationStatus VerificationStatus @default(UNVERIFIED)
-
-  rating Float @default(0)
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT RELATIONS
-  // ----------------------------------------------------------
-
-  transportJobs TransportJob[]
-
-  transportQuotes TransportQuote[]
-
-
-  // ----------------------------------------------------------
-  // INDEXES
-  // ----------------------------------------------------------
+  transportJobs      TransportJob[]
+  transportQuotes    TransportQuote[]
 
   @@index([ownerId])
-
   @@index([availability])
-
   @@index([operatingArea])
-
-  @@index([truckType])
+  @@index([registration])
 }
-
 
 // ============================================================
 // TRANSPORT JOB
 // ============================================================
-//
-// Created only when buyer/seller decides how transport will
-// be handled.
-//
-// ------------------------------------------------------------
-//
-// OWN_TRUCK
-// ----------
-// Buyer/seller uses their own registered truck.
-//
-// No transporter-hiring commission.
-//
-// ------------------------------------------------------------
-//
-// HIRE_TRANSPORTER
-// ----------------
-// Buyer/seller creates a hire request.
-//
-// Registered truck owners can submit multiple quotes.
-//
-// Buyer/seller then selects a transporter.
-//
-// ============================================================
 
 model TransportJob {
-  id String @id @default(uuid())
+  id                    String           @id @default(uuid())
 
+  // One transport job belongs to one order.
+  order                 Order            @relation(fields: [orderId], references: [id])
+  orderId               String           @unique
 
-  // ----------------------------------------------------------
-  // ORDER
-  // ----------------------------------------------------------
+  arrangingParty        ArrangingParty
+  method                TransportMethod
 
-  order Order @relation(
-    fields: [orderId],
-    references: [id]
-  )
+  // Assigned transporter.
+  truckOwner            User?            @relation("TruckOwnerJobs", fields: [truckOwnerId], references: [id])
+  truckOwnerId          String?
 
-  orderId String @unique
+  // Selected truck.
+  truck                 Truck?           @relation(fields: [truckId], references: [id])
+  truckId               String?
 
+  pickupLocation        String
+  destination           String
+  load                  String
+  requiredCapacity      Float?
+  specialRequirements   String?
 
-  // ----------------------------------------------------------
-  // WHO ARRANGES TRANSPORT
-  // ----------------------------------------------------------
+  status                TransportStatus  @default(REQUESTED)
 
-  arrangingParty ArrangingParty
-
-
-  // ----------------------------------------------------------
-  // TRANSPORT METHOD
-  // ----------------------------------------------------------
-
-  method TransportMethod
-
-
-  // ----------------------------------------------------------
-  // ASSIGNED TRUCK OWNER
-  // ----------------------------------------------------------
-  //
-  // Null while a hire request is still open.
-  //
-
-  truckOwner User? @relation(
-    "TruckOwnerJobs",
-    fields: [truckOwnerId],
-    references: [id]
-  )
-
-  truckOwnerId String?
-
-
-  // ----------------------------------------------------------
-  // SELECTED TRUCK
-  // ----------------------------------------------------------
-
-  truck Truck? @relation(
-    fields: [truckId],
-    references: [id]
-  )
-
-  truckId String?
-
-
-  // ----------------------------------------------------------
-  // ROUTE / LOAD
-  // ----------------------------------------------------------
-
-  pickupLocation String
-
-  destination String
-
-  load String
-
-  requiredCapacity Float?
-
-  specialRequirements String?
-
-
-  // ----------------------------------------------------------
-  // STATUS
-  // ----------------------------------------------------------
-
-  status TransportStatus @default(REQUESTED)
-
-
-  // ----------------------------------------------------------
-  // DELIVERY TIMESTAMPS
-  // ----------------------------------------------------------
-
-  pickupConfirmedAt DateTime?
-
+  pickupConfirmedAt     DateTime?
   deliveredConfirmedAt DateTime?
+  incidentNotes         String?
 
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
-  // ----------------------------------------------------------
-  // INCIDENTS
-  // ----------------------------------------------------------
-
-  incidentNotes String?
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  // ----------------------------------------------------------
-  // QUOTES
-  // ----------------------------------------------------------
-  //
-  // Multiple registered truck owners can quote on a hire job.
-  //
-
-  quotes TransportQuote[]
-
-
-  // ----------------------------------------------------------
-  // INDEXES
-  // ----------------------------------------------------------
+  quotes                TransportQuote[]
 
   @@index([truckOwnerId])
-
   @@index([truckId])
-
   @@index([status])
-
   @@index([method])
-
-  @@index([arrangingParty])
 }
 
-
 // ============================================================
-// TRANSPORT QUOTE
+// TRANSPORT QUOTES
 // ============================================================
 //
-// A truck owner responds to a HIRE_TRANSPORTER request.
-//
-// Example:
-//
-// Job #123
-//   ├── Truck Owner A → 15,000 ETB
-//   ├── Truck Owner B → 17,000 ETB
-//   └── Truck Owner C → 14,500 ETB
-//
-// The buyer/seller can select the preferred quote.
+// Used for HIRE_TRANSPORTER jobs. Multiple registered truck
+// owners can submit a quote. The buyer/seller arranging the job
+// can select a quote and the selected truck becomes assigned.
 //
 // ============================================================
 
 model TransportQuote {
-  id String @id @default(uuid())
+  id             String               @id @default(uuid())
 
-
-  // ----------------------------------------------------------
-  // TRANSPORT JOB
-  // ----------------------------------------------------------
-
-  transportJob TransportJob @relation(
-    fields: [transportJobId],
-    references: [id]
-  )
-
+  transportJob   TransportJob         @relation(fields: [transportJobId], references: [id])
   transportJobId String
 
+  truckOwner     User                 @relation("TruckOwnerQuotes", fields: [truckOwnerId], references: [id])
+  truckOwnerId   String
 
-  // ----------------------------------------------------------
-  // TRUCK OWNER
-  // ----------------------------------------------------------
+  truck          Truck                @relation(fields: [truckId], references: [id])
+  truckId        String
 
-  truckOwner User @relation(
-    "TruckOwnerQuotes",
-    fields: [truckOwnerId],
-    references: [id]
-  )
+  amount         Float
+  status         TransportQuoteStatus @default(PENDING)
+  message        String?
 
-  truckOwnerId String
-
-
-  // ----------------------------------------------------------
-  // TRUCK
-  // ----------------------------------------------------------
-  //
-  // Truck selected by the truck owner for this quote.
-  //
-
-  truck Truck? @relation(
-    fields: [truckId],
-    references: [id]
-  )
-
-  truckId String?
-
-
-  // ----------------------------------------------------------
-  // QUOTE
-  // ----------------------------------------------------------
-
-  amount Float
-
-  message String?
-
-  status TransportQuoteStatus @default(PENDING)
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-
-  // ----------------------------------------------------------
-  // INDEXES
-  // ----------------------------------------------------------
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
 
   @@index([transportJobId])
-
   @@index([truckOwnerId])
-
   @@index([truckId])
-
   @@index([status])
-
-
-  // Prevent the same truck owner from creating duplicate
-  // active quote records for the same job.
-  @@unique([transportJobId, truckOwnerId])
+  @@unique([transportJobId, truckOwnerId, truckId])
 }
-
 
 // ============================================================
 // DIGITAL PRODUCTS
 // ============================================================
 
 model DigitalProduct {
-  id String @id @default(uuid())
+  id          String        @id @default(uuid())
 
+  seller      User          @relation(fields: [sellerId], references: [id])
+  sellerId    String
 
-  seller User @relation(
-    fields: [sellerId],
-    references: [id]
-  )
-
-  sellerId String
-
-
-  title String
-
+  title       String
   productType String
-
-  price Float
-
-  fileUrl String
-
+  price       Float
+  fileUrl     String
   description String?
 
+  status      ListingStatus @default(ACTIVE)
 
-  status ListingStatus @default(ACTIVE)
-
-
-  createdAt DateTime @default(now())
-
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@index([sellerId])
-
   @@index([status])
 }
 
-
 // ============================================================
-// PAYMENT
-// ============================================================
-//
-// Payments can relate to:
-//   - marketplace purchase
-//   - transport
-//   - inspection
-//   - advertising
-//
+// PAYMENTS
 // ============================================================
 
 model Payment {
-  id String @id @default(uuid())
+  id          String        @id @default(uuid())
 
+  order       Order?        @relation(fields: [orderId], references: [id])
+  orderId     String?
 
-  // ----------------------------------------------------------
-  // ORDER
-  // ----------------------------------------------------------
+  type        PaymentType
+  amount      Float
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  reference   String?
 
-  order Order? @relation(
-    fields: [orderId],
-    references: [id]
-  )
-
-  orderId String?
-
-
-  // ----------------------------------------------------------
-  // PAYMENT
-  // ----------------------------------------------------------
-
-  type PaymentType
-
-  amount Float
-
-  method PaymentMethod
-
-  status PaymentStatus @default(PENDING)
-
-  reference String?
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMP
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
+  createdAt   DateTime      @default(now())
 
   @@index([orderId])
-
   @@index([type])
-
   @@index([status])
-
   @@index([reference])
 }
 
-
 // ============================================================
-// ADVERTISEMENT
+// ADVERTISING
 // ============================================================
 
 model Advertisement {
-  id String @id @default(uuid())
+  id            String      @id @default(uuid())
 
+  advertiser    User        @relation(fields: [advertiserId], references: [id])
+  advertiserId  String
 
-  advertiser User @relation(
-    fields: [advertiserId],
-    references: [id]
-  )
+  listing       Listing?    @relation(fields: [listingId], references: [id])
+  listingId     String?
 
-  advertiserId String
+  type          AdType
+  status        AdStatus    @default(PENDING)
 
+  startDate     DateTime
+  endDate       DateTime
+  amountPaid    Float?
 
-  listing Listing? @relation(
-    fields: [listingId],
-    references: [id]
-  )
-
-  listingId String?
-
-
-  type AdType
-
-  status AdStatus @default(PENDING)
-
-
-  startDate DateTime
-
-  endDate DateTime
-
-  amountPaid Float?
-
-
-  createdAt DateTime @default(now())
-
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@index([advertiserId])
-
   @@index([listingId])
-
   @@index([status])
-
-  @@index([startDate])
-
-  @@index([endDate])
 }
 
-
 // ============================================================
-// DISPUTE
+// DISPUTES
 // ============================================================
 
 model Dispute {
-  id String @id @default(uuid())
+  id           String        @id @default(uuid())
 
+  order        Order         @relation(fields: [orderId], references: [id])
+  orderId      String
 
-  // ----------------------------------------------------------
-  // ORDER
-  // ----------------------------------------------------------
+  raisedBy     User          @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
+  raisedById   String
 
-  order Order @relation(
-    fields: [orderId],
-    references: [id]
-  )
+  against      User          @relation("DisputeAgainst", fields: [againstId], references: [id])
+  againstId    String
 
-  orderId String
+  disputeType  String
+  description  String
+  evidence     String[]
 
+  status       DisputeStatus @default(OPEN)
+  resolution   String?
 
-  // ----------------------------------------------------------
-  // PERSON WHO RAISED DISPUTE
-  // ----------------------------------------------------------
-
-  raisedBy User @relation(
-    "DisputeRaisedBy",
-    fields: [raisedById],
-    references: [id]
-  )
-
-  raisedById String
-
-
-  // ----------------------------------------------------------
-  // PERSON DISPUTE IS AGAINST
-  // ----------------------------------------------------------
-
-  against User @relation(
-    "DisputeAgainst",
-    fields: [againstId],
-    references: [id]
-  )
-
-  againstId String
-
-
-  // ----------------------------------------------------------
-  // DISPUTE
-  // ----------------------------------------------------------
-
-  disputeType String
-
-  description String
-
-  evidence String[] @default([])
-
-  status DisputeStatus @default(OPEN)
-
-  resolution String?
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMPS
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@index([orderId])
-
   @@index([raisedById])
-
   @@index([againstId])
-
   @@index([status])
 }
 
-
 // ============================================================
-// RATING
+// RATINGS
 // ============================================================
 
 model Rating {
-  id String @id @default(uuid())
+  id          String   @id @default(uuid())
 
+  order       Order    @relation(fields: [orderId], references: [id])
+  orderId     String
 
-  // ----------------------------------------------------------
-  // ORDER
-  // ----------------------------------------------------------
+  fromUser    User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  fromUserId  String
 
-  order Order @relation(
-    fields: [orderId],
-    references: [id]
-  )
+  toUser      User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  toUserId    String
 
-  orderId String
+  role        Role
+  score       Int
+  comment     String?
 
-
-  // ----------------------------------------------------------
-  // FROM USER
-  // ----------------------------------------------------------
-
-  fromUser User @relation(
-    "RatingsGiven",
-    fields: [fromUserId],
-    references: [id]
-  )
-
-  fromUserId String
-
-
-  // ----------------------------------------------------------
-  // TO USER
-  // ----------------------------------------------------------
-
-  toUser User @relation(
-    "RatingsReceived",
-    fields: [toUserId],
-    references: [id]
-  )
-
-  toUserId String
-
-
-  // ----------------------------------------------------------
-  // RATING
-  // ----------------------------------------------------------
-
-  role Role
-
-  score Int
-
-  comment String?
-
-
-  createdAt DateTime @default(now())
-
+  createdAt   DateTime @default(now())
 
   @@index([orderId])
-
   @@index([fromUserId])
-
   @@index([toUserId])
-
-  @@unique([orderId, fromUserId, toUserId])
 }
 
-
 // ============================================================
-// MESSAGE
+// MESSAGES
 // ============================================================
 
 model Message {
-  id String @id @default(uuid())
+  id          String   @id @default(uuid())
 
+  order       Order?   @relation(fields: [orderId], references: [id])
+  orderId     String?
 
-  // ----------------------------------------------------------
-  // OPTIONAL ORDER
-  // ----------------------------------------------------------
+  sender      User     @relation("MessagesSent", fields: [senderId], references: [id])
+  senderId    String
 
-  order Order? @relation(
-    fields: [orderId],
-    references: [id]
-  )
+  receiver    User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+  receiverId  String
 
-  orderId String?
+  content     String
 
-
-  // ----------------------------------------------------------
-  // SENDER
-  // ----------------------------------------------------------
-
-  sender User @relation(
-    "MessagesSent",
-    fields: [senderId],
-    references: [id]
-  )
-
-  senderId String
-
-
-  // ----------------------------------------------------------
-  // RECEIVER
-  // ----------------------------------------------------------
-
-  receiver User @relation(
-    "MessagesReceived",
-    fields: [receiverId],
-    references: [id]
-  )
-
-  receiverId String
-
-
-  // ----------------------------------------------------------
-  // CONTENT
-  // ----------------------------------------------------------
-
-  content String
-
-
-  // ----------------------------------------------------------
-  // TIMESTAMP
-  // ----------------------------------------------------------
-
-  createdAt DateTime @default(now())
-
+  createdAt   DateTime @default(now())
 
   @@index([orderId])
-
   @@index([senderId])
-
   @@index([receiverId])
-
-  @@index([createdAt])
 }
