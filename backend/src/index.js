@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('express-async-errors');
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -21,35 +22,157 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+/*
+|--------------------------------------------------------------------------
+| Security / Middleware
+|--------------------------------------------------------------------------
+*/
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
-app.use(morgan('dev'));
-app.use(express.json({ limit: '5mb' }));
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'marketbridge-api' }));
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : [];
 
-app.use('/api/auth', authRoutes);
-app.use('/api/listings', listingRoutes);
-app.use('/api/offers', offerRoutes);
-app.use('/api/inspections', inspectionRoutes);
-app.use('/api/transport', transportRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/ads', adRoutes);
-app.use('/api/disputes', disputeRoutes);
-app.use('/api/ratings', ratingRoutes);
-app.use('/api/digital-products', digitalRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/admin', adminRoutes);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header, such as health checks,
+      // server-to-server requests, and some development tools.
+      if (!origin) {
+        return callback(null, true);
+      }
 
-// 404
-app.use((req, res) => res.status(404).json({ error: 'Not found' }));
+      // If CLIENT_URL is not configured, allow the request.
+      // For production, set CLIENT_URL in Railway.
+      if (allowedOrigins.length === 0) {
+        return callback(null, true);
+      }
 
-// Central error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(
+        new Error(`CORS blocked request from origin: ${origin}`)
+      );
+    },
+    credentials: true,
+  })
+);
+
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+app.use(
+  express.json({
+    limit: '5mb',
+  })
+);
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: '5mb',
+  })
+);
+
+/*
+|--------------------------------------------------------------------------
+| Health Check
+|--------------------------------------------------------------------------
+*/
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'marketbridge-api',
+    timestamp: new Date().toISOString(),
+  });
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`MarketBridge API listening on port ${PORT}`));
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
+app.use('/api/auth', authRoutes);
+
+app.use('/api/listings', listingRoutes);
+
+app.use('/api/offers', offerRoutes);
+
+app.use('/api/inspections', inspectionRoutes);
+
+app.use('/api/transport', transportRoutes);
+
+app.use('/api/orders', orderRoutes);
+
+app.use('/api/payments', paymentRoutes);
+
+app.use('/api/ads', adRoutes);
+
+app.use('/api/disputes', disputeRoutes);
+
+app.use('/api/ratings', ratingRoutes);
+
+app.use('/api/digital-products', digitalRoutes);
+
+app.use('/api/messages', messageRoutes);
+
+app.use('/api/admin', adminRoutes);
+
+/*
+|--------------------------------------------------------------------------
+| API 404
+|--------------------------------------------------------------------------
+*/
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    path: req.originalUrl,
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Central Error Handler
+|--------------------------------------------------------------------------
+*/
+
+app.use((err, req, res, next) => {
+  console.error('MarketBridge API error:', err);
+
+  // CORS errors
+  if (err.message && err.message.startsWith('CORS blocked')) {
+    return res.status(403).json({
+      error: 'CORS policy blocked this request',
+    });
+  }
+
+  // Express/route-provided status
+  const status = Number(err.status || err.statusCode) || 500;
+
+  res.status(status).json({
+    error:
+      process.env.NODE_ENV === 'production' && status === 500
+        ? 'Internal server error'
+        : err.message || 'Internal server error',
+  });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Start Server
+|--------------------------------------------------------------------------
+*/
+
+const PORT = Number(process.env.PORT) || 4000;
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`MarketBridge API listening on port ${PORT}`);
+});
